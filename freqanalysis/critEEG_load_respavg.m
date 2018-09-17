@@ -1,30 +1,42 @@
 function [respavg] = critEEG_load_respavg()
 % load freqanalysis and timelockanalysis data into memory, concat over
 % subjects
+save_respavg = 'no';
 
-basepath = '/path'; % on the cluster
+if ismac
+    basepath = '/Users/kloosterman/gridmaster2012/kloosterman'; % on the cluster
+else
+    basepath = '/home/mpib/kloosterman'; % on the cluster
+end
 
 %% Set up arrays
-inputfolder = 'freq'; 
-SUBJ  = { 
-    'Subj1'     ...
-    'Subj2' ...
-    'Subj3'    ...
-    'Subj4'   ... only 2 sessions
-    'Subj5'   ...
-    'Subj6'    ...
-    'Subj7'       'Subj8'  'Subj9' ...
-    'Subj10'   ...
-    'Subj11' ...
-    'Subj12' ... % has no low crit for session 3
-    'Subj13'    'Subj14'   ... Subj14 lowfreq noise
-     'Subj15'   ...
-    'Subj16'
-};   
+inputfolder = 'freq_costrap'; % still with detrend, better gamma
+% inputfolder = 'freq_costrap_robdetr'; 
+% inputfolder = 'freq_1sprestim'; % still with detrend, better gamma
+% inputfolder = 'freq_nodetrend';
 
+SUBJ  = {
+    'Erik'     ...
+    'Esther'   ...
+    'Greke'    ...
+    'Isabelle'   ...
+    'Jesse' ...
+    'Lotte'    ...
+    'Matthijs'       'Nicoletta'  'Niels' ...
+    'Rebecca'   ...
+    'Rein' ...
+    'Rinske'  ...
+    'Ruben' ...
+...  	  'Stephen'  ... excessive noise, but include for MSE control
+    'Vera'   ...
+    'Zimbo'
+    }; %
 disp(length(SUBJ))
-PREOUT = '/plots';
+% PREOUT = fullfile(basepath, 'plots'); mkdir(PREOUT)
+% PREOUT = '/Users/kloosterman/gridmaster2012/kloosterman/projectdata/critEEG/plots';
+PREOUT = '/Users/kloosterman/Dropbox/PROJECTS/CriterionEEG/plots';
 respavg = [];
+respavg.inputfolder = fullfile(basepath, 'projectdata', 'critEEG', inputfolder);
 respavg.SUBJ = SUBJ;
 respavg.PREOUT = PREOUT;
 
@@ -37,10 +49,19 @@ freqtype = 'totalpow';  %evoked induced totalpow
 freq_leg = {'low' 'high'}; % low high
 % TIMLO(1,1) = -0.8; %stim
 % TIMHI(1,1) = 1.5; 
-TIMLO(1,1) = -0.8; %stim
-TIMHI(1,1) = 0.9; 
+TIMLO(1,1) = -0.5; %stim
+TIMHI(1,1) = 1; 
 TIMLO(2,1) = -0.5;%resp
 TIMHI(2,1) = 0.75; %dat{itrig}.TIMHI;
+
+% evoked settings
+% trigger_leg = {'stim'}; %  'stim' resp
+% freqtype = 'evoked';  %evoked induced totalpow
+% freq_leg = {'low' 'high'}; % low high
+% TIMLO(1,1) = -0.1; %stim
+% TIMHI(1,1) = 0.5; 
+% TIMLO(2,1) = -0.5;%resp NOT USED
+% TIMHI(2,1) = 1; %dat{itrig}.TIMHI;
 
 respavg.trigger_leg = trigger_leg;
 respavg.freqtype = freqtype;
@@ -157,16 +178,53 @@ end
 fprintf('Calculating averages and contrasts . . .\n')
 respavg.dat = respavg.dat .* 100; % make psc
 respavg.dat(:,:,:,:, :,:, 4,:,:,:) = nanmean(respavg.dat(:,:,:,:, :,:, 1:3,:,:,:), 7); % ses avg
-respavg.dat(:,:,:,:, :,:, :,3,:,:) = nanmean(respavg.dat(:,:,:,:, :,:, :,1:2,:,:), 8); % cond avg
-respavg.dat(:,:,:,:, :,:, :,:,3,:) = nanmean(respavg.dat(:,:,:,:, :,:, :,:,1:2,:), 9); % stim avg
-respavg.dat(:,:,:,:, :,:, :,:,:,3) = nanmean(respavg.dat(:,:,:,:, :,:, :,:,:,1:2), 10); % resp avg
+% respavg.dat(:,:,:,:, :,:, :,3,:,:) = nanmean(respavg.dat(:,:,:,:, :,:, :,1:2,:,:), 8); % cond avg
+% respavg.dat(:,:,:,:, :,:, :,:,3,:) = nanmean(respavg.dat(:,:,:,:, :,:, :,:,1:2,:), 9); % stim avg
+% respavg.dat(:,:,:,:, :,:, :,:,:,3) = nanmean(respavg.dat(:,:,:,:, :,:, :,:,:,1:2), 10); % resp avg
 
 respavg.dat(:,:,:,:, :,:, :,4,:,:) = respavg.dat(:,:,:,:, :,:, :,2,:,:) - respavg.dat(:,:,:,:, :,:, :,1,:,:); %behavcond diff
+% respavg.dat(:,:,:,:, :,:, :,:,4,:) = respavg.dat(:,:,:,:, :,:, :,:,1,:) - respavg.dat(:,:,:,:, :,:, :,:,2,:); %stim diff
+% respavg.dat(:,:,:,:, :,:, :,:,:,4) = respavg.dat(:,:,:,:, :,:, :,:,:,1) - respavg.dat(:,:,:,:, :,:, :,:,:,2); %resp diff
 
 respavg.pow(:,:,:,:, :,:, 4,:,:,:) = nanmean(respavg.pow(:,:,:,:, :,:, 1:3,:,:,:), 7); % ses avg
 
+% respavg.pow(:,:,:,:, :,:, :,:,3,:) = nanmean(respavg.pow(:,:,:,:, :,:, :,:,1:2,:), 9); % stim avg
+% respavg.pow(:,:,:,:, :,:, :,:,:,3) = nanmean(respavg.pow(:,:,:,:, :,:, :,:,:,1:2), 10); % resp avg
+
+% used in the power paper!
+respavg.pow(:,:,:,:, :,:, :,4,:,:) = respavg.pow(:,:,:,:, :,:, :,2,:,:) - respavg.pow(:,:,:,:, :,:, :,1,:,:); %behavcond diff
+
+% respavg.pow(:,:,:,:, :,:, :,4,:,:) = (respavg.pow(:,:,:,:, :,:, :,1,:,:) - respavg.pow(:,:,:,:, :,:, :,2,:,:)) ./ ...
+%     respavg.pow(:,:,:,:, :,:, :,2,:,:); %high-low crit psc wrt lowcrit
+% respavg.pow(:,:,:,:, :,:, :,4,:,:) = (respavg.pow(:,:,:,:, :,:, :,2,:,:) - respavg.pow(:,:,:,:, :,:, :,1,:,:)) ./ ...
+%     respavg.pow(:,:,:,:, :,:, :,1,:,:); %lib-cons psc wrt cons
+% respavg.pow(:,:,:,:, :,:, :,4,:,:) = (respavg.pow(:,:,:,:, :,:, :,2,:,:) - respavg.pow(:,:,:,:, :,:, :,1,:,:)) ./ ...
+%     respavg.pow(:,:,:,:, :,:, :,3,:,:) * 100; %lib-cons psc wrt all
+% respavg.pow(:,:,:,:, :,:, :,4,:,:) = (respavg.pow(:,:,:,:, :,:, :,2,:,:) - respavg.pow(:,:,:,:, :,:, :,3,:,:)) ./ ...
+%     respavg.pow(:,:,:,:, :,:, :,3,:,:) * 100; %lib-cons psc wrt all
+
+% % liberal-cons, divide by all SDT cons
+% respavg.pow(:,:,:,:, :,:, :,4,:,:) = (respavg.pow(:,:,:,:, :,:, :,2,:,:) - respavg.pow(:,:,:,:, :,:, :,1,:,:)) ./ ...
+%     respavg.pow(:,:,:,:, :,:, :,1,3,3); 
+
 respavg.basespec(:,:,:,:,:, 3,:,:)  = nanmean(respavg.basespec(:,:,:,:,:, 1:2,:,:),6);
 respavg.basespec(:,:,:,:,:, 4,:,:)  = respavg.basespec(:,:,:,:,:, 1,:,:) - respavg.basespec(:,:,:,:,:, 2,:,:); % cond
+respavg.basespec(:,:,:,:,:, :,3,:)  = nanmean(respavg.basespec,7); % stim avg
+respavg.basespec(:,:,:,:,:, :,:,3)  = nanmean(respavg.basespec,8); % stim avg
+
+%  normalize with low crit
+% respavg.basespec(:,:,:,:,:, 4,:,:)  = (respavg.basespec(:,:,:,:,:, 1,:,:) - respavg.basespec(:,:,:,:,:, 2,:,:)) ...
+%     ./ respavg.basespec(:,:,:,:,:, 2,:,:); 
+% %  normalize with low crit, divide by all crit
+% respavg.basespec(:,:,:,:,:, 4,:,:)  = (respavg.basespec(:,:,:,:,:, 1,:,:) - respavg.basespec(:,:,:,:,:, 2,:,:)) ...
+%     ./ respavg.basespec(:,:,:,:,:, 3,:,:); 
+%  normalize with low crit, divide by high crit
+% respavg.basespec(:,:,:,:,:, 4,:,:)  = (respavg.basespec(:,:,:,:,:, 1,:,:) - respavg.basespec(:,:,:,:,:, 2,:,:)) ...
+%     ./ respavg.basespec(:,:,:,:,:, 1,:,:); 
+% %  normalize with high crit
+% respavg.basespec(:,:,:,:,:, 4,:,:)  = (respavg.basespec(:,:,:,:,:, 2,:,:) - respavg.basespec(:,:,:,:,:, 1,:,:)) ...
+%     ./ respavg.basespec(:,:,:,:,:, 1,:,:); 
+
 
 respavg.basespec(:,4,:,:,:, :,:,:)  = nanmean(respavg.basespec(:,:,:,:,:, :,:,:), 2);
 
@@ -178,7 +236,42 @@ load(fullfile(behavin, 'behavstruct.mat'));
 respavg.behavior = behav;
 respavg.behavior.dimord = 'subj_ses_cond';
 
-% add DDM 10/5 bins results
-respavg.ddmpars10bins = critEEG_load_binned_paras(10);
-respavg.ddmpars5bins = critEEG_load_binned_paras(5);
-respavg.ddmpars3bins = critEEG_load_binned_paras(3);
+% % add DDM 10/5 bins results
+try
+    respavg.ddmpars10bins = critEEG_load_binned_paras(10);
+    % respavg.ddmpars5bins = critEEG_load_binned_paras(5);
+    % % respavg.ddmpars3bins = critEEG_load_binned_paras(3);
+catch
+    disp('DDM paras not loaded')
+end
+
+switch save_respavg
+    case 'yes'
+        fprintf('Saving respavg!!!')
+        cd /Users/kloosterman/Dropbox/PROJECTS/CriterionEEG/projectdata
+        save(['respavg_' inputfolder], 'respavg', '-v7.3')
+end
+
+
+% %% regress low crit from high crit, to get regressed change
+% % respavg.dat(:,:,:,:, :,:, :,4,:,:) = respavg.dat(:,:,:,:, :,:, :,1,:,:) - respavg.dat(:,:,:,:, :,:, :,2,:,:); %behavcond diff
+% %dimord: 'subj_chan_freq_time ... band_trig ... ses_cond_stim_resp'
+% iband=1; itrig = 1;
+% hicritdat = squeeze(respavg.pow(:,:,1:length(respavg.freq{iband}),:, iband,itrig, 4,1,1,1));
+% datsize = size(hicritdat);
+% hicritdat = reshape(hicritdat, 16,[]);
+% locritdat = squeeze(respavg.pow(:,:,1:length(respavg.freq{iband}),:, iband,itrig, 4,2,1,1));
+% locritdat = reshape(locritdat, 16,[]);
+% regr_chdat = nan(size(hicritdat));
+% for itsf = 1:size(hicritdat,2)
+% %     fprintf('%d',itsf)
+%     [~,~, regr_chdat(:,itsf)] = regress(hicritdat(:,itsf), locritdat(:,itsf));
+% end
+% regr_chdat2 = reshape(regr_chdat, datsize);
+% figure; imagesc(respavg.time{1}, respavg.freq{iband},  squeeze(mean(mean(regr_chdat2(:,respavg.sens.ind{1},:,:) ,2 ))));
+% colorbar
+% % respavg.pow(:,:,1:respavg.freq{iband},1:respavg.time{itrig}, iband,itrig, :, 4, 1, 1)
+% % respavg.pow(:,:,:,:, :,:, :,4,:,:) = regr_chdat2;
+% 
+
+

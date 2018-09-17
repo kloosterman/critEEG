@@ -110,6 +110,72 @@ switch freqtype
         
     case 'induced' % load in evoked (ssvep) data, subtract from each trial, run freqanalysis TODO fix for resp-locked
         data = remove_ERP_fromdata(data_stim, 'subtract');
+
+    case 'induced_robdetr' % load in evoked (ssvep) data, subtract from each trial, run freqanalysis TODO fix for resp-locked
+        data = remove_ERP_fromdata(data_stim, 'nt_detrend');
+
+%         inputfile = dir('*CSD_evoked.mat');
+%         fprintf('Loading %s from...\n %s\n', inputfile.name, PREIN)
+%         load(inputfile.name);
+%         data_ssvep = data;
+%         
+%         %         ctr = 0; timelocks2append = {};
+%         %         conds = 1:2;                stims = 1:2;                resps = 1:2;
+%         %         for icond = conds % NoMiss NoFA
+%         %             for istim = stims % 1 = left, 2 = right
+%         %                 for iresp = resps % left or right
+%         %                     cond_ind = data_ssvep.trialinfo(:,1) == icond; % trialinfo nicely coded for ssvep
+%         %                     stim_ind = data_ssvep.trialinfo(:,2) == istim;
+%         %                     resp_ind = data_ssvep.trialinfo(:,3) == iresp;
+%         
+%         cond_ind = data_ssvep.trialinfo(:,1) == 3; % take avg across all trials
+%         stim_ind = data_ssvep.trialinfo(:,2) == 3;
+%         resp_ind = data_ssvep.trialinfo(:,3) == 3;
+%         
+%         cfg_time = [];
+%         cfg_time.vartrllength = 2;
+%         cfg_time.trials = find(cond_ind & stim_ind & resp_ind); % 1 trial
+%         %                     if isempty(cfg_time.trials)
+%         %                         warning('No trials for this condition present, continuing')
+%         %                         continue
+%         %                     end
+%         timelock_ssvep = ft_timelockanalysis(cfg_time, data_ssvep); % just to get the single trial in a nice matrix
+%         
+%         %                     % now get the single trials from the overall data
+%         %                     cond_ind = data_stim.trialinfo(:,1) == icond;
+%         %                     stim_ind = data_stim.trialinfo(:,2) == istim;
+%         %                     resp_ind = data_stim.trialinfo(:,3) == iresp;
+%         %                     cfg_time.trials = find(cond_ind & stim_ind & resp_ind);
+%         
+%         cfg_time.keeptrials = 'yes';
+%         timelock = ft_timelockanalysis(cfg_time, data_stim); % take all trials
+%         
+%         % repmat timelock_ssvep and subtract from trials
+%         ntrials=size(timelock.trial,1);
+%         ssvepdat_repmat = shiftdim(timelock_ssvep.avg,-1); % make leading singleton
+%         ssvepdat = repmat(ssvepdat_repmat, [ntrials 1 1]);
+%         try % TODO fix time axis for SSVEP subtraction
+%             timelock.trial = timelock.trial - ssvepdat; % subtract the ssvep!
+%         catch
+%             timelock;
+%         end
+%         %                     ctr=ctr+1;
+%         %                     timelocks2append{ctr} = timelock;
+%         %                 end
+%         %             end
+%         %         end
+%         %         data = ft_appenddata([], timelocks2append{:});
+%         %         data.cfg.previous = data.cfg.previous{1};
+%         data = timelock;
+%         
+%         %                     save([inputfile '_removed'], 'data')  % save ssvep-removed data
+%         
+%         if strcmp(trigger, 'resp')
+%             cfg_resp=[];
+%             cfg_resp.offset = -data.trialinfo(:,4);
+%             cfg_resp.trials = find(cfg_resp.offset < 1);
+%             data = ft_redefinetrial(cfg_resp, data); %overwrite the (totalpow) resplocked data already in memory
+%         end
         
     case 'totalpow' % Nothing to do, just enter all trials in ft_freqanalysis
         
@@ -129,3 +195,39 @@ if exist(fullfile(PREOUT, outputfile))
     delete(fullfile(PREOUT, outputfile)); % cluster does not overwrite? NO
 end
 save(fullfile(PREOUT, outputfile), 'freq');
+
+%                         temp={}; cfg_sel = []; % workaround to get back to datatype data, for redefinetrial
+%                         for itrial = 1:size(data.trialinfo,1)
+%                             fprintf('Trial %d . . .  ', itrial)
+%                             cfg_sel.trials = itrial;
+%                             temp{itrial} = ft_selectdata(cfg_sel, data);
+%                         end
+%                         data = ft_appenddata([], temp{:});
+%                         data.cfg.previous = data.cfg.previous{1};
+%                         clear temp
+
+%                     cfg=[];
+%                     cfg.parameter = 'powspctrm';
+%                     cfg.outputfile = sprintf('%s%s_%s_%s_%sfreq', PREOUT, SUBJ{isub}, session_name, freqtype, freqband);
+%                     freq = ft_appendfreq(cfg, freq{:});
+%                 FIXME:
+%                 freq.cfg.previous = freq.cfg.previous{1}; % otherwise 8
+%                 cfg's are saved, huge output files
+%
+%                 cfg_save=[];
+%                 cfg_save.outputfile = sprintf('%s%s_%s_%s_%sfreq', PREOUT, SUBJ{isub}, session_name, freqtype, freqband);
+%                 freq2 = ft_freqdescriptives(cfg_save, freq); % only to save fhe freq
+
+%                         cfg = [];
+%     cfg.component = [1:48];       % specify the component(s) that should be plotted
+%     %             cfg.component = [13:24];       % specify the component(s) that should be plotted
+%     cfg.layout = 'biosemi64.lay'; % specify the layout file that should be used for plotting
+%     cfg.comment   = 'no';
+%     figure
+%     ft_topoplotIC(cfg, comp)
+%
+%         cfg = [];
+%     cfg.layout = 'biosemi64.lay'; % specify the layout file that should be used for plotting
+%     cfg.viewmode = 'component';
+%     ft_databrowser(cfg, comp)
+
